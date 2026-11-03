@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Reactivity Series, Displacement & Redox</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+--bg:#faf8f4;--card:#fff;--tx:#1f2430;--mu:#5d6575;--bd:#e3ded4;--ac:#e8820c;--ox:#1f5fbf;--rd:#d12a2a;--ok:#1d8a4e;--hl:#fff3c4}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#15171c;--card:#1e222a;--tx:#eceff4;--mu:#9aa3b2;--bd:#323846;--ac:#ffa033;--ox:#6aa6ff;--rd:#ff6b6b;--ok:#4cd08a;--hl:#4a3f12}}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;line-height:1.5}
+main{max-width:920px;margin:0 auto;padding:16px}
+h1{font-size:1.5rem;margin:.2em 0}.sub{color:var(--mu);margin:0 0 12px}
+nav{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+button,select{font:inherit;color:var(--tx)}
+nav button{padding:8px 14px;border:1px solid var(--bd);background:var(--card);border-radius:999px;cursor:pointer}
+nav button.on{background:var(--ac);border-color:var(--ac);color:#fff;font-weight:600}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:16px;margin-bottom:12px}
+.grid{display:grid;grid-template-columns:200px 1fr;gap:14px}
+@media(max-width:640px){.grid{grid-template-columns:1fr}}
+.ladder{display:flex;flex-direction:column;border-radius:10px;overflow:hidden;border:1px solid var(--bd)}
+.ladder div{padding:5px 12px;cursor:pointer;font-size:.95rem;border-bottom:1px solid rgba(0,0,0,.05)}
+.ladder .non{font-style:italic;opacity:.85}
+.ladder div.sel{outline:3px solid var(--tx);outline-offset:-3px;font-weight:700}
+.arrow{font-size:.8rem;color:var(--mu);margin:4px 0}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:8px 0}
+select{padding:7px 10px;border:1px solid var(--bd);background:var(--card);border-radius:8px}
+.eq{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:1.05rem;padding:10px 12px;background:var(--bg);border-radius:8px;border:1px solid var(--bd);overflow-x:auto;margin:8px 0;white-space:nowrap}
+.res{padding:10px 12px;border-radius:8px;border-left:5px solid var(--ok);background:var(--bg);margin-top:8px}
+.res.no{border-color:var(--rd)}
+.tag{display:inline-block;padding:1px 8px;border-radius:6px;font-weight:700;font-size:.85rem;color:#fff}
+.t-ox{background:var(--ox)}.t-rd{background:var(--rd)}
+.ox{color:var(--ox);font-weight:700}.rd{color:var(--rd);font-weight:700}
+.sp{padding:0 2px;border-radius:4px}.sp.hit{background:var(--hl)}.sp.gone{text-decoration:line-through;opacity:.5}
+.btn{padding:8px 14px;border:1px solid var(--bd);background:var(--card);border-radius:8px;cursor:pointer}
+.btn.p{background:var(--ac);color:#fff;border-color:var(--ac)}
+.seg button{padding:7px 14px;border:1px solid var(--bd);background:var(--card);cursor:pointer}
+.seg button:first-child{border-radius:8px 0 0 8px}.seg button:last-child{border-radius:0 8px 8px 0}
+.seg button.on{background:var(--ox);color:#fff;border-color:var(--ox)}
+.note{font-size:.9rem;color:var(--mu)}
+.opt{display:block;width:100%;text-align:left;margin:6px 0;padding:9px 12px;border:1px solid var(--bd);background:var(--card);border-radius:8px;cursor:pointer}
+.opt.good{border-color:var(--ok);background:rgba(29,138,78,.15)}.opt.bad{border-color:var(--rd);background:rgba(209,42,42,.12)}
+.mn{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center}
+.mn div{padding:8px;border-radius:8px;background:var(--bg);border:1px solid var(--bd)}
+</style></head><body><main>
+<h1>⚗️ Displacement &amp; Redox Board</h1>
+<p class="sub">Reactivity series · competition reactions · oxidation &amp; reduction · ionic equations</p>
+<nav id="nav"></nav>
+<div id="view"></div>
+</main>
+<script>
+const $=s=>document.querySelector(s);
+const M=[['potassium','K'],['sodium','Na'],['lithium','Li'],['calcium','Ca'],['magnesium','Mg'],['aluminium','Al'],['carbon','C',1],['zinc','Zn'],['iron','Fe'],['hydrogen','H',1],['copper','Cu'],['silver','Ag'],['gold','Au']];
+const col=i=>`hsl(${8+i*3.2},${88-i*3}%,${68+i*1.4}%)`;
+const tabs=['Reactivity','Redox','Ions & spectators','Mnemonics','Quiz'];
+let tab=0;
+function nav(){$('#nav').innerHTML=tabs.map((t,i)=>`<button class="${i==tab?'on':''}" onclick="tab=${i};nav();draw()">${i+1}. ${t}</button>`).join('')}
+
+/* ---- Tab 1 ---- */
+let A=4,B=10,kind='oxide';
+function ladder(){return `<div class="ladder">${M.map((m,i)=>`<div class="${m[2]?'non':''} ${i==A||i==B?'sel':''}" style="background:${col(i)};color:#222" onclick="pick(${i})">${m[0]} (${m[1]})${i==A?' ◀ metal':''}${i==B?' ◀ in compound':''}</div>`).join('')}</div><div class="arrow">▲ most reactive · tap to set the metal, tap again for the compound's metal</div>`}
+let nextIsA=false;
+function pick(i){if(nextIsA)A=i;else B=i;nextIsA=!nextIsA;draw()}
+const nm=i=>M[i][0];
+function t1(){
+ const go=A<B, same=A==B;
+ const cmp=kind=='oxide'?`${nm(B)} oxide`:`${nm(B)} sulfate solution`;
+ const prod=kind=='oxide'?`${nm(A)} oxide + ${nm(B)}`:`${nm(A)} sulfate + ${nm(B)}`;
+ let out;
+ if(same)out=`<div class="res no"><b>Same metal – nothing to displace.</b> Choose two different ones.</div>`;
+ else if(go)out=`<div class="res"><b>Reaction happens ✔</b><div class="eq">${nm(A)} + ${cmp} → ${prod}</div>${nm(A)} is <b>higher</b> in the series than ${nm(B)}, so it displaces it from the compound.${M[A][2]?`<br><span class="note">Carbon (and hydrogen) aren't metals but sit in the series. Carbon removing oxygen from metal oxides is how metals like iron are extracted (Chemistry only).</span>`:''}</div>`;
+ else out=`<div class="res no"><b>No reaction ✘</b><div class="eq">${nm(A)} + ${cmp} → no reaction</div>${nm(A)} is <b>lower</b> than ${nm(B)}, so it can't displace ${nm(B)} from its compound.</div>`;
+ return `<div class="card"><b>Competition reactions.</b> A more reactive metal displaces a less reactive one from its compound. The two metals "compete" for the oxygen (or the anion).</div>
+ <div class="grid"><div>${ladder()}</div><div class="card"><div class="row"><span>Compound type:</span><span class="seg"><button class="${kind=='oxide'?'on':''}" onclick="kind='oxide';draw()">Solid oxide</button><button class="${kind=='salt'?'on':''}" onclick="kind='salt';draw()">Salt solution</button></span></div>
+ <div class="row"><label>Metal: <select onchange="A=+this.value;draw()">${M.map((m,i)=>`<option value="${i}" ${i==A?'selected':''}>${m[0]}</option>`).join('')}</select></label>
+ <label>Compound of: <select onchange="B=+this.value;draw()">${M.map((m,i)=>`<option value="${i}" ${i==B?'selected':''}>${m[0]}</option>`).join('')}</select></label></div>${out}
+ <p class="note">Textbook examples: Mg + CuO ✔ · Mg + ZnO ✔ · C + CuO ✔ · Zn + CuSO₄ ✔ · Cu + AgNO₃ ✔ · Cu + MgO ✘</p></div></div>`}
+
+/* ---- Tab 2 ---- */
+const R=[
+{n:'Mg + CuO',eq:'Mg(s) + CuO(s) → MgO(s) + Cu(s)',gain:'Mg',lose:'CuO',red:'Mg',oxa:'CuO',oh:'Mg(s) → Mg²⁺ + 2e⁻',rh:'Cu²⁺ + 2e⁻ → Cu(s)',ion:'Mg(s) + Cu²⁺O²⁻(s) → Mg²⁺O²⁻(s) + Cu(s)',note:'The oxide ion O²⁻ just changes partner – it is unchanged.'},
+{n:'Mg + ZnO',eq:'Mg(s) + ZnO(s) → MgO(s) + Zn(s)',gain:'Mg',lose:'ZnO',red:'Mg',oxa:'ZnO',oh:'Mg(s) → Mg²⁺ + 2e⁻',rh:'Zn²⁺ + 2e⁻ → Zn(s)',ion:'Mg(s) + Zn²⁺O²⁻(s) → Mg²⁺O²⁻(s) + Zn(s)',note:'Same pattern as Mg + CuO.'},
+{n:'C + CuO',eq:'C(s) + 2CuO(s) → CO₂(g) + 2Cu(s)',gain:'C',lose:'CuO',red:'C',oxa:'CuO',noe:1},
+{n:'Zn + CuSO₄',eq:'Zn(s) + CuSO₄(aq) → ZnSO₄(aq) + Cu(s)',red:'Zn',oxa:'Cu²⁺',oh:'Zn(s) → Zn²⁺(aq) + 2e⁻',rh:'Cu²⁺(aq) + 2e⁻ → Cu(s)',ion:'Zn(s) + Cu²⁺(aq) → Zn²⁺(aq) + Cu(s)',noo:1,note:'No oxygen involved – only the electron definition works here.'},
+{n:'Cu + AgNO₃',eq:'Cu(s) + 2AgNO₃(aq) → Cu(NO₃)₂(aq) + 2Ag(s)',red:'Cu',oxa:'Ag⁺',oh:'Cu(s) → Cu²⁺(aq) + 2e⁻',rh:'Ag⁺(aq) + e⁻ → Ag(s)',ion:'Cu(s) + 2Ag⁺(aq) → Cu²⁺(aq) + 2Ag(s)',noo:1,note:'Each Cu gives 2e⁻, so 2 Ag⁺ are needed.'}];
+let ri=0,view2='O';
+function t2(){
+ const r=R[ri];if(r.noo)view2='E';if(r.noe)view2='O';
+ let body;
+ if(view2=='O')body=`<p><span class="tag t-ox">OXIDATION</span> = gain of oxygen: <b>${r.gain}</b> gains oxygen.</p><p><span class="tag t-rd">REDUCTION</span> = loss of oxygen: <b>${r.lose}</b> loses oxygen.</p>${r.noe?'<p class="note">Carbon is covalent, so the oxygen view is the one to use at this level.</p>':''}`;
+ else body=`<div class="eq">${r.ion}</div><p class="note">${r.note}</p><p><span class="tag t-ox">OXIDATION</span> = loss of electrons<div class="eq ox">${r.oh}</div></p><p><span class="tag t-rd">REDUCTION</span> = gain of electrons<div class="eq rd">${r.rh}</div></p>`;
+ return `<div class="card"><div class="row">${R.map((x,i)=>`<button class="btn ${i==ri?'p':''}" onclick="ri=${i};draw()">${x.n}</button>`).join('')}</div>
+ <div class="eq">${r.eq}</div>
+ <div class="row"><span>View:</span><span class="seg"><button class="${view2=='O'?'on':''}" ${r.noo?'disabled style="opacity:.4"':''} onclick="view2='O';draw()">Oxygen transfer</button><button class="${view2=='E'?'on':''}" ${r.noe?'disabled style="opacity:.4"':''} onclick="view2='E';draw()">Electron transfer</button></span></div>${body}
+ <div class="res"><b>Reducing agent:</b> ${r.red} (it is oxidised – it gives away electrons / takes oxygen)<br><b>Oxidising agent:</b> ${r.oxa} (it is reduced – it takes electrons / gives oxygen)</div></div>
+ <div class="card note">A <b>redox</b> reaction has reduction and oxidation happening together. The oxidising agent always gets reduced; the reducing agent always gets oxidised.</div>`}
+
+/* ---- Tab 3 ---- */
+const S=[{n:'Zn + CuSO₄',a:'Zn(s) + CuSO₄(aq) → ZnSO₄(aq) + Cu(s)',b:'Zn(s) + Cu²⁺(aq) + <i class="sp">SO₄²⁻(aq)</i> → Zn²⁺(aq) + <i class="sp">SO₄²⁻(aq)</i> + Cu(s)',c:'Zn(s) + Cu²⁺(aq) → Zn²⁺(aq) + Cu(s)',h:['Zn(s) → Zn²⁺(aq) + 2e⁻ (oxidation)','Cu²⁺(aq) + 2e⁻ → Cu(s) (reduction)'],col:'blue solution fades → colourless; brown copper forms'},
+{n:'Cu + AgNO₃',a:'Cu(s) + 2AgNO₃(aq) → Cu(NO₃)₂(aq) + 2Ag(s)',b:'Cu(s) + 2Ag⁺(aq) + <i class="sp">2NO₃⁻(aq)</i> → Cu²⁺(aq) + <i class="sp">2NO₃⁻(aq)</i> + 2Ag(s)',c:'Cu(s) + 2Ag⁺(aq) → Cu²⁺(aq) + 2Ag(s)',h:['Cu(s) → Cu²⁺(aq) + 2e⁻ (oxidation)','Ag⁺(aq) + e⁻ → Ag(s) (reduction)'],col:'grey silver "fur" forms; solution turns blue'}];
+let si=0,st=1;
+function t3(){
+ const s=S[si],cls=st>=4?'gone':st>=3?'hit':'';
+ let h=`<div class="eq">${st>=2?s.b.replace(/class="sp"/g,`class="sp ${cls}"`):s.a}</div>`;
+ const lbl=['','1 · Full formula equation','2 · Write the dissolved compounds as ions','3 · Spot the spectator ions (unchanged both sides)','4 · Remove them → ionic equation','5 · Split into half-equations'];
+ if(st==1)h=`<div class="eq">${s.a}</div>`;
+ if(st>=4)h+=`<div class="eq" style="border-color:var(--ac)">${s.c}</div>`;
+ if(st>=5)h+=`<div class="eq ox">${s.h[0]}</div><div class="eq rd">${s.h[1]}</div>`;
+ return `<div class="card"><div class="row">${S.map((x,i)=>`<button class="btn ${i==si?'p':''}" onclick="si=${i};st=1;draw()">${x.n}</button>`).join('')}</div>
+ <p><b>${lbl[st]}</b></p>${h}
+ ${st>=3?'<p class="note">Spectator ions are in solution on both sides and take no part in the reaction – which is why any soluble copper(II) salt (chloride, nitrate…) reacts with zinc in the same way.</p>':''}
+ ${st>=5?`<div class="res"><b>Observation:</b> ${s.col}</div>`:''}
+ <div class="row"><button class="btn" onclick="st=Math.max(1,st-1);draw()">◀ Back</button><button class="btn p" onclick="st=Math.min(5,st+1);draw()">Next step ▶</button><span class="note">Step ${st} of 5</span></div></div>
+ <div class="card note">Ions are only separated in <b>solution</b> (free to move). In a solid they are locked in the lattice.</div>`}
+
+/* ---- Tab 4 ---- */
+function t4(){return `<div class="card"><div class="mn">
+<div><b>O</b>xidation</div><div><b>I</b>s</div><div><b>L</b>oss of electrons</div>
+<div><b>R</b>eduction</div><div><b>I</b>s</div><div><b>G</b>ain of electrons</div></div>
+<p class="note">OIL RIG – electron definition.</p></div>
+<div class="card"><b>Two sets of definitions – use the simpler one</b><br>
+Oxygen: oxidation = gain of O · reduction = loss of O<br>
+Electrons: oxidation = loss of e⁻ · reduction = gain of e⁻<br><br>
+<b>Agents:</b> reducing agent <span class="note">→ gives e⁻ / takes O → is oxidised</span><br>
+oxidising agent <span class="note">→ takes e⁻ / gives O → is reduced</span></div>
+<div class="card"><b>Key rules</b><br>• Higher in the series displaces lower.<br>• Lower metal + higher compound → no reaction.<br>• Metals form positive ions (lose e⁻) when they react.<br>• Ionic equations show only the particles that change.</div>`}
+
+/* ---- Tab 5 ---- */
+const Q=[
+['Which metal will displace copper from copper(II) sulfate solution?',['Silver','Zinc','Gold','None'],1,'Zinc is above copper in the series.'],
+['Copper is heated with magnesium oxide. What happens?',['Copper displaces magnesium','Magnesium oxide decomposes','No reaction','Copper oxide forms'],2,'Copper is less reactive than magnesium.'],
+['In Mg + CuO → MgO + Cu, what is the oxidising agent?',['Mg','CuO','MgO','Cu'],1,'CuO gives oxygen to Mg, so it oxidises Mg (and is itself reduced).'],
+['Zn → Zn²⁺ + 2e⁻ is…',['Oxidation','Reduction','Neither','A spectator ion'],0,'Loss of electrons = oxidation (OIL).'],
+['In Zn + CuSO₄, which ion is the spectator?',['Zn²⁺','Cu²⁺','SO₄²⁻','Zn'],2,'Sulfate is unchanged on both sides.'],
+['In Cu + 2Ag⁺ → Cu²⁺ + 2Ag, the reducing agent is…',['Ag⁺','Cu²⁺','Ag','Cu'],3,'Cu gives electrons away, so it reduces Ag⁺ and is oxidised.']];
+let qi=0,sc=0,ans=null;
+function t5(){
+ if(qi>=Q.length)return `<div class="card"><h2>Score: ${sc} / ${Q.length}</h2><button class="btn p" onclick="qi=0;sc=0;ans=null;draw()">Try again</button></div>`;
+ const q=Q[qi];
+ return `<div class="card"><p class="note">Question ${qi+1} of ${Q.length}</p><p><b>${q[0]}</b></p>${q[1].map((o,i)=>`<button class="opt ${ans!=null?(i==q[2]?'good':i==ans?'bad':''):''}" ${ans!=null?'disabled':''} onclick="ans=${i};if(${i}==${q[2]})sc++;draw()">${o}</button>`).join('')}
+ ${ans!=null?`<div class="res ${ans==q[2]?'':'no'}">${ans==q[2]?'Correct! ':'Not quite. '}${q[3]}</div><p><button class="btn p" onclick="qi++;ans=null;draw()">${qi==Q.length-1?'See score':'Next'} ▶</button></p>`:''}</div>`}
+
+function draw(){$('#view').innerHTML=[t1,t2,t3,t4,t5][tab]()}
+nav();draw();
+</script></body></html>
